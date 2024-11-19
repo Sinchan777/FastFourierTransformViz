@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FFT Visualizer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --background-color: #0a0c10;
+            --card-background: #161b22;
+            --primary-color: #58a6ff;
+            --text-color: #c9d1d9;
+            --border-color: #30363d;
+            --hover-color: #1f6feb;
+            --grid-color: #21262d;
+            --accent-color: #238636;
+            --gradient-start: #2ea043;
+            --gradient-end: #238636;
+        }
+        body {
+            margin: 0;
+            font-family: 'Roboto', sans-serif;
+            font-weight: 300;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            padding: 10px;
+            min-height: 100vh;
+            letter-spacing: 0.5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
+        }
+        #container {
+            width: 1200px;
+            height: 700px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            flex: 0 0 auto;
+            padding: 20px;
+            background: linear-gradient(180deg, rgba(22,27,34,0.8) 0%, rgba(22,27,34,0) 100%);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 32px;
+            background: linear-gradient(120deg, #58a6ff, #88d1f1);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0px 2px 10px rgba(88, 166, 255, 0.2);
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+        .header p {
+            color: #8b949e;
+            margin: 10px 0 0 0;
+            font-size: 16px;
+            font-weight: 400;
+        }
+        .input-section {
+            text-align: center;
+            margin-bottom: 20px;
+            flex: 0 0 auto;
+            background: linear-gradient(180deg, rgba(22,27,34,0.6) 0%, rgba(22,27,34,0) 100%);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+        .input-section p {
+            margin: 0 0 15px 0;
+            font-size: 14px;
+            color: #8b949e;
+            font-weight: 400;
+        }
+        input {
+            width: 80%;
+            max-width: 600px;
+            padding: 12px 16px;
+            margin: 5px 0 15px 0;
+            background-color: var(--card-background);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: 'Roboto Mono', monospace;
+            font-weight: 400;
+            transition: all 0.2s ease;
+        }
+        input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2);
+        }
+        input::placeholder {
+            color: #8b949e;
+        }
+        .button-container {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: 'Roboto', sans-serif;
+            letter-spacing: 0.3px;
+            border: none;
+        }
+        button.compute-btn {
+            background: linear-gradient(180deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+            color: #ffffff;
+            box-shadow: 0 1px 0 rgba(27,31,35,0.1), inset 0 1px 0 rgba(255,255,255,0.03);
+        }
+        button.compute-btn:hover {
+            background: linear-gradient(180deg, #2ea043 0%, #2ea043 100%);
+            transform: translateY(-1px);
+        }
+        button.compute-btn:active {
+            transform: translateY(1px);
+        }
+        button.clear-button {
+            background-color: var(--card-background);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+        button.clear-button:hover {
+            background-color: #21262d;
+            border-color: #8b949e;
+        }
+        .visualization-container {
+            display: flex;
+            gap: 10px;
+            flex: 1;
+            min-height: 0;
+            height: 500px;
+        }
+        .canvas-container {
+            flex: 3;
+            background-color: var(--card-background);
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            max-width: 900px;
+        }
+        .values-container {
+            flex: 0 0 200px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .visualization-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .toggle-button {
+            background-color: var(--card-background);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .toggle-button.active {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        #fftValues {
+            background-color: var(--card-background);
+            border-radius: 10px;
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+            text-align: left;
+            font-family: 'Roboto Mono', monospace;
+            white-space: pre-wrap;
+            font-size: 14px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            color: var(--text-color);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--card-background);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div class="header">
+            <h1>Fast Fourier Transform Visualizer</h1>
+            <p>Professional FFT Analysis & Visualization Tool</p>
+        </div>
+        <div class="input-section">
+            <p>Enter numerical values separated by commas for FFT analysis</p>
+            <input type="text" id="inputValues" placeholder="e.g., 1, 2, 3, 4, 5, 6, 7, 8">
+            <div class="button-container">
+                <button class="compute-btn" onclick="computeFFT()">Compute FFT</button>
+                <button class="clear-button" onclick="clearInput()">Clear Input</button>
+            </div>
+            <div id="error"></div>
+        </div>
+        <div class="visualization-container">
+            <div class="canvas-container">
+                <div class="visualization-controls">
+                    <button class="toggle-button active" onclick="setVisualizationMode('graph')">Graph View</button>
+                    <button class="toggle-button" onclick="setVisualizationMode('neural')">Neural Network View</button>
+                </div>
+                <canvas id="fftCanvas"></canvas>
+            </div>
+            <div class="values-container">
+                <div id="fftValues"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        let currentMode = 'graph';
+        let lastFFTData = null;
+
+        function setVisualizationMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.toggle-button').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.textContent.toLowerCase().includes(mode)) {
+                    btn.classList.add('active');
+                }
+            });
+            if (lastFFTData) {
+                drawFFT(lastFFTData);
+            }
+        }
+
+        function resizeCanvas() {
+            const canvas = document.getElementById('fftCanvas');
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight - document.querySelector('.visualization-controls').offsetHeight - 20;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('load', resizeCanvas);
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function clearInput() {
+            document.getElementById('inputValues').value = '';
+            document.getElementById('fftValues').style.display = 'none';
+            const canvas = document.getElementById('fftCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        async function computeFFT() {
+            try {
+                const input = document.getElementById('inputValues').value;
+                if (!input.trim()) {
+                    showError('Please enter values');
+                    return;
+                }
+
+                // Using GitHub Pages URL
+                const response = await fetch('https://api.github.com/repos/YOUR_USERNAME/fft-visualizer/compute-fft', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ values: input })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const data = await response.json();
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+
+                drawFFT(data.result);
+                updateValues(data.result);
+            } catch (error) {
+                showError('Error computing FFT: ' + error.message);
+            }
+        }
+
+        function updateValues(fftData) {
+            const valuesDiv = document.getElementById('fftValues');
+            valuesDiv.style.display = 'block';
+            let text = 'FFT Magnitudes:\n\n';
+            fftData.forEach((value, index) => {
+                text += `Freq ${index}: ${value.toFixed(4)}\n`;
+            });
+            valuesDiv.textContent = text;
+        }
+
+        function drawFFT(fftData) {
+            lastFFTData = fftData;
+            const canvas = document.getElementById('fftCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Set up canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#161b22';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const padding = 25; 
+            const plotWidth = canvas.width - 2 * padding;
+            const plotHeight = canvas.height - 2 * padding;
+
+            if (currentMode === 'graph') {
+                drawTraditionalGraph(ctx, fftData, padding, plotWidth, plotHeight);
+            } else {
+                drawNeuralNetwork(ctx, fftData, padding, plotWidth, plotHeight);
+            }
+        }
+
+        function drawTraditionalGraph(ctx, fftData, padding, plotWidth, plotHeight) {
+            // Draw grid
+            ctx.strokeStyle = '#21262d';
+            ctx.lineWidth = 0.5; 
+            const gridSize = 15; 
+            
+            // Add extra padding for axis labels
+            const leftPadding = padding + 35; 
+            const bottomPadding = padding + 25; 
+            
+            for(let x = leftPadding; x <= ctx.canvas.width - padding; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, padding);
+                ctx.lineTo(x, ctx.canvas.height - bottomPadding);
+                ctx.stroke();
+            }
+            
+            for(let y = padding; y <= ctx.canvas.height - bottomPadding; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(leftPadding, y);
+                ctx.lineTo(ctx.canvas.width - padding, y);
+                ctx.stroke();
+            }
+            
+            // Draw axes
+            ctx.beginPath();
+            ctx.strokeStyle = '#30363d';
+            ctx.lineWidth = 1.5; 
+            ctx.moveTo(leftPadding, padding);
+            ctx.lineTo(leftPadding, ctx.canvas.height - bottomPadding);
+            ctx.lineTo(ctx.canvas.width - padding, ctx.canvas.height - bottomPadding);
+            ctx.stroke();
+
+            // Draw axis labels
+            ctx.fillStyle = '#8b949e';
+            ctx.font = '12px Roboto';
+            ctx.textAlign = 'center';
+            
+            // X-axis label
+            ctx.fillText('Frequency', ctx.canvas.width / 2, ctx.canvas.height - padding + 20);
+            
+            // Y-axis label
+            ctx.save();
+            ctx.translate(padding - 5, ctx.canvas.height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Magnitude', 0, 0);
+            ctx.restore();
+
+            // Draw x-axis values
+            const xStep = Math.ceil(fftData.length / 10); 
+            for(let i = 0; i < fftData.length; i += xStep) {
+                const x = leftPadding + (i * (plotWidth - 35) / fftData.length);
+                ctx.fillText(i.toString(), x, ctx.canvas.height - bottomPadding + 15);
+            }
+
+            // Draw y-axis values
+            const maxMagnitude = Math.max(...fftData);
+            const yStep = (plotHeight - 25) / 5; 
+            for(let i = 0; i <= 5; i++) {
+                const y = ctx.canvas.height - bottomPadding - (i * yStep);
+                const value = (maxMagnitude * i / 5).toFixed(1);
+                ctx.textAlign = 'right';
+                ctx.fillText(value, leftPadding - 8, y + 4);
+            }
+
+            // Draw bars
+            const barWidth = ((plotWidth - 35) / fftData.length) * 0.8; 
+            
+            const gradient = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height);
+            gradient.addColorStop(0, '#58a6ff');
+            gradient.addColorStop(1, '#1f6feb');
+            
+            ctx.fillStyle = gradient;
+            fftData.forEach((magnitude, i) => {
+                const barHeight = (magnitude / maxMagnitude) * (plotHeight - 25);
+                ctx.fillRect(
+                    leftPadding + i * ((plotWidth - 35) / fftData.length) + ((plotWidth - 35) / fftData.length - barWidth) / 2,
+                    ctx.canvas.height - bottomPadding - barHeight,
+                    barWidth,
+                    barHeight
+                );
+            });
+        }
+
+        function drawNeuralNetwork(ctx, fftData, padding, plotWidth, plotHeight) {
+            const maxMagnitude = Math.max(...fftData);
+            const nodeRadius = 3; 
+            const leftPadding = padding + 35; 
+            const bottomPadding = padding + 25; 
+            const lineSpacing = (plotHeight - 25) / (Math.max(fftData.length - 1, 1));
+            
+            // Draw axis labels
+            ctx.fillStyle = '#8b949e';
+            ctx.font = '12px Roboto';
+            ctx.textAlign = 'center';
+            
+            // X-axis label
+            ctx.fillText('Output Nodes (Frequency Domain)', ctx.canvas.width / 2, ctx.canvas.height - padding + 20);
+            
+            // Y-axis label for input
+            ctx.save();
+            ctx.translate(padding - 5, ctx.canvas.height / 3);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Input Nodes', 0, 0);
+            ctx.restore();
+            
+            // Y-axis label for output
+            ctx.save();
+            ctx.translate(ctx.canvas.width - padding + 25, ctx.canvas.height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Magnitude', 0, 0);
+            ctx.restore();
+
+            // Draw connecting lines
+            ctx.strokeStyle = 'rgba(88, 166, 255, 0.08)';
+            ctx.lineWidth = 0.5; 
+            
+            for(let i = 0; i < fftData.length; i++) {
+                const x1 = leftPadding;
+                const y1 = padding + i * lineSpacing;
+                
+                // Add input node labels
+                ctx.fillStyle = '#8b949e';
+                ctx.textAlign = 'right';
+                ctx.fillText(i.toString(), x1 - 8, y1 + 4);
+                
+                for(let j = 0; j < fftData.length; j++) {
+                    const magnitude = fftData[j] / maxMagnitude;
+                    if (magnitude > 0.1) {
+                        const x2 = leftPadding + (plotWidth - 35) * (j + 1) / fftData.length;
+                        const y2 = ctx.canvas.height - bottomPadding - magnitude * (plotHeight - 25);
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(x1, y1);
+                        ctx.lineTo(x2, y2);
+                        ctx.stroke();
+                    }
+                }
+            }
+            
+            // Draw input nodes
+            ctx.fillStyle = '#58a6ff';
+            for(let i = 0; i < fftData.length; i++) {
+                const x = leftPadding;
+                const y = padding + i * lineSpacing;
+                
+                ctx.beginPath();
+                ctx.arc(x, y, nodeRadius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Draw FFT magnitude nodes with glow
+            fftData.forEach((magnitude, i) => {
+                const normalizedMagnitude = magnitude / maxMagnitude;
+                const x = leftPadding + (plotWidth - 35) * (i + 1) / fftData.length;
+                const y = ctx.canvas.height - bottomPadding - normalizedMagnitude * (plotHeight - 25);
+                
+                // Add frequency labels
+                ctx.fillStyle = '#8b949e';
+                ctx.textAlign = 'center';
+                if (i % Math.ceil(fftData.length / 10) === 0) {
+                    ctx.fillText(i.toString(), x, ctx.canvas.height - bottomPadding + 15);
+                }
+                
+                const glowRadius = nodeRadius * 1.5;
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, glowRadius);
+                gradient.addColorStop(0, 'rgba(88, 166, 255, 0.6)');
+                gradient.addColorStop(1, 'rgba(88, 166, 255, 0)');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(x, y, glowRadius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#58a6ff';
+                ctx.beginPath();
+                ctx.arc(x, y, nodeRadius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            
+            // Draw y-axis values for magnitude
+            const yStep = (plotHeight - 25) / 5; 
+            for(let i = 0; i <= 5; i++) {
+                const y = ctx.canvas.height - bottomPadding - (i * yStep);
+                const value = (maxMagnitude * i / 5).toFixed(1);
+                ctx.fillStyle = '#8b949e';
+                ctx.textAlign = 'right';
+                ctx.fillText(value, ctx.canvas.width - padding + 15, y + 4);
+            }
+        }
+    </script>
+</body>
+</html>
